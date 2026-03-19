@@ -1,0 +1,580 @@
+.looter-app .window-content {
+  background: color-mix(in srgb, rgba(12, 13, 18, 0.72) 86%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.looter-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  color: var(--color-light-1, #f8fafc);
+}
+
+.looter-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--looter-accent-soft);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.38);
+}
+
+.looter-toolbar h2,
+.looter-panel h3,
+.looter-help-card h3 {
+  margin: 0 0 4px;
+}
+
+.looter-toolbar p,
+.looter-muted,
+.looter-help-card p,
+.looter-help-card li {
+  margin: 0;
+  opacity: 0.8;
+}
+
+.looter-toolbar-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.looter-toolbar-actions button,
+.looter-open-manager,
+.looter-save,
+.looter-add-row,
+.looter-seed-tables,
+.looter-delete-row,
+.looter-reroll,
+.looter-chat,
+.looter-apply {
+  border: 1px solid var(--looter-accent-soft);
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.5);
+  color: inherit;
+  cursor: pointer;
+}
+
+.looter-toolbar-actions button.primary,
+.looter-save.primary,
+.looter-apply.primary {
+  background: var(--looter-accent);
+  border-color: var(--looter-accent);
+  color: white;
+}
+
+.looter-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.2fr;
+  gap: 12px;
+  min-height: 0;
+  flex: 1;
+}
+
+.looter-panel,
+.looter-help-card {
+  min-height: 0;
+  border: 1px solid var(--looter-accent-soft);
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(15, 23, 42, 0.35);
+}
+
+.looter-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.looter-enemy-list,
+.looter-player-list,
+.looter-item-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.looter-enemy-list,
+.looter-player-list,
+.looter-loot-scroll {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+}
+
+.looter-loot-scroll {
+  margin-top: 10px;
+  padding-right: 4px;
+}
+
+.looter-enemy-card,
+.looter-player-card,
+.looter-item-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.04);
+}
+
+.looter-enemy-card img,
+.looter-player-card img,
+.looter-item-meta img {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.16);
+}
+
+.looter-player-card {
+  cursor: pointer;
+}
+
+.looter-player-card input {
+  margin: 0;
+}
+
+.looter-item-row {
+  justify-content: space-between;
+}
+
+.looter-item-meta {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.looter-currency-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.looter-currency-grid label,
+.looter-totals > label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+
+.looter-import-dropzone {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  border: 1px dashed var(--looter-accent-soft);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.03);
+  transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
+}
+
+.looter-import-dropzone-title {
+  font-weight: 600;
+}
+
+.looter-import-dropzone-subtitle {
+  opacity: 0.8;
+  font-size: 12px;
+}
+
+.looter-import-dropzone.is-drop-target {
+  border-color: var(--looter-accent);
+  background: color-mix(in srgb, var(--looter-accent) 14%, rgba(255,255,255,0.05));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--looter-accent) 30%, transparent) inset;
+}
+
+.looter-manager-table-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.looter-manager-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.looter-manager-table th,
+.looter-manager-table td {
+  padding: 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.looter-manager-table input,
+.looter-item-row select,
+.looter-totals input {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(2,6,23,0.48);
+  color: inherit;
+}
+
+.looter-manager-table th > .looter-sort-monsters {
+  width: 100%;
+  text-align: left;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+  color: inherit;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+.looter-type-selector {
+  width: 100%;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(2,6,23,0.48);
+  color: inherit;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.looter-type-selector-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.looter-type-selector-placeholder {
+  opacity: 0.65;
+}
+
+.looter-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.08);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.looter-type-popover {
+  position: fixed;
+  z-index: 10000;
+  width: min(280px, calc(100vw - 24px));
+  max-height: min(320px, calc(100vh - 24px));
+  overflow: auto;
+  padding: 10px;
+  border: 1px solid var(--looter-accent-soft);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.97);
+  box-shadow: 0 14px 28px rgba(0,0,0,0.35);
+}
+
+.looter-type-popover-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.looter-type-popover-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.looter-type-popover-actions button {
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.05);
+  color: inherit;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.looter-type-popover-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.looter-type-popover-list label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 2px;
+}
+
+.looter-drop-hint {
+  margin: 8px 0 10px;
+  padding: 10px 12px;
+  border: 1px dashed var(--looter-accent-soft);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.03);
+  opacity: 0.9;
+}
+
+.looter-drop-hint i {
+  margin-right: 6px;
+}
+
+.looter-monsters.is-drop-target,
+.looter-monsters tr.is-drop-target {
+  outline: 1px solid var(--looter-accent);
+  outline-offset: -1px;
+  background: rgba(255,255,255,0.08);
+}
+
+.looter-help-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.theme-violet { --looter-accent: #7c3aed; --looter-accent-soft: rgba(124, 58, 237, 0.42); }
+.theme-emerald { --looter-accent: #059669; --looter-accent-soft: rgba(5, 150, 105, 0.42); }
+.theme-crimson { --looter-accent: #dc2626; --looter-accent-soft: rgba(220, 38, 38, 0.42); }
+.theme-amber { --looter-accent: #d97706; --looter-accent-soft: rgba(217, 119, 6, 0.42); }
+
+@media (max-width: 1100px) {
+  .looter-grid-3,
+  .looter-help-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.looter-player-card {
+  align-items: flex-start;
+}
+
+.looter-player-card.is-drop-target,
+.looter-unassigned-dropzone.is-drop-target {
+  border-color: var(--looter-accent);
+  box-shadow: 0 0 0 1px var(--looter-accent) inset;
+  background: rgba(255,255,255,0.08);
+}
+
+.looter-player-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.looter-assigned-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.looter-assigned-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  font-size: 12px;
+}
+
+.looter-unassigned-dropzone {
+  margin: 10px 0;
+  padding: 10px;
+  border: 1px dashed rgba(255,255,255,0.18);
+  border-radius: 12px;
+  text-align: center;
+  opacity: 0.82;
+  background: rgba(255,255,255,0.03);
+}
+
+.looter-item-row {
+  cursor: grab;
+  justify-content: flex-start;
+}
+
+.looter-item-row:active {
+  cursor: grabbing;
+}
+
+.looter-item-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 240px;
+}
+
+.looter-clear-assignment {
+  border: 1px solid var(--looter-accent-soft);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.5);
+  color: inherit;
+  cursor: pointer;
+  padding: 6px 10px;
+}
+
+.looter-unassign-pill {
+  gap: 6px;
+  cursor: pointer;
+  color: inherit;
+}
+
+.looter-unassign-pill i {
+  opacity: 0.75;
+  font-size: 11px;
+}
+
+.looter-unassign-pill:hover,
+.looter-unassign-pill:focus {
+  border-color: var(--looter-accent-soft);
+  background: rgba(255,255,255,0.1);
+}
+
+
+.looter-panel-fill {
+  flex: 1;
+}
+
+.looter-subheader {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.looter-subheader h3 {
+  margin: 0 0 4px;
+}
+
+.looter-profile-scroll-wrap {
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.looter-profile-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(8px);
+}
+
+.looter-delete-profile-white,
+.looter-delete-profile-white i {
+  color: #fff;
+}
+
+.looter-delete-profile-white {
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+  cursor: pointer;
+}
+
+
+.looter-table-picker-field {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.looter-table-picker-field .looter-table-display {
+  flex: 1 1 auto;
+}
+
+.looter-pick-table {
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+}
+
+
+/* Treasure Profiles button visibility and picker alignment */
+.looter-add-profile,
+.looter-add-profile i,
+button.looter-add-profile,
+button.looter-add-profile * {
+  color: #ffffff !important;
+}
+
+.looter-add-profile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.9rem;
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.04);
+  cursor: pointer;
+  line-height: 1;
+}
+
+.looter-add-profile:hover,
+.looter-add-profile:focus {
+  color: #ffffff !important;
+  border-color: rgba(255,255,255,0.3);
+  background: rgba(255,255,255,0.08);
+}
+
+.looter-pick-table,
+.looter-pick-table i {
+  color: #ffffff !important;
+}
+
+.looter-pick-table {
+  padding: 0 !important;
+  line-height: 1;
+}
+
+.looter-pick-table i {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  line-height: 1;
+}
+
+
+.looter-clear-table,
+.looter-clear-table i {
+  color: #ffffff !important;
+}
+
+.looter-clear-table {
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 !important;
+  line-height: 1;
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 999px;
+  background: rgba(255,255,255,0.04);
+}
+
+.looter-clear-table:hover,
+.looter-clear-table:focus {
+  border-color: rgba(255,255,255,0.3);
+  background: rgba(255,255,255,0.08);
+}

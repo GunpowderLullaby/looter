@@ -1,0 +1,43 @@
+{
+  "id": "looter",
+  "title": "Looter",
+  "description": "Post-combat loot and treasure distribution for Foundry VTT.",
+  "version": "0.3.15",
+  "authors": [
+    {
+      "name": "GunpowderLullaby"
+    }
+  ],
+  "compatibility": {
+    "minimum": "13",
+    "verified": "13.351"
+  },
+  "relationships": {
+    "systems": [
+      {
+        "id": "dnd5e",
+        "type": "system",
+        "compatibility": {
+          "minimum": "5.2.5",
+          "verified": "5.2.5"
+        }
+      }
+    ]
+  },
+  "esmodules": [
+    "scripts/main.js"
+  ],
+  "styles": [
+    "styles/looter.css"
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ],
+  "url": "https://github.com/GunpowderLullaby/Looter",
+  "manifest": "",
+  "download": ""
+}

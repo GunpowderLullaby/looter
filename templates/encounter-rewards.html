@@ -1,0 +1,101 @@
+<form class="looter-shell looter-encounter-shell">
+  <header class="looter-toolbar">
+    <div>
+      <h2>Looter Rewards</h2>
+      <p>Review defeated enemies, drag loot onto player cards, adjust totals, then apply rewards.</p>
+    </div>
+    <div class="looter-toolbar-actions">
+      <button type="button" class="looter-reroll"><i class="fas fa-dice"></i> Reroll Rewards</button>
+      <button type="button" class="looter-chat"><i class="fas fa-comments"></i> Send Summary to Chat</button>
+      <button type="button" class="looter-apply primary"><i class="fas fa-gift"></i> Apply Rewards</button>
+    </div>
+  </header>
+
+  <section class="looter-grid looter-grid-3">
+    <div class="looter-panel">
+      <h3>Defeated Enemies</h3>
+      <div class="looter-enemy-list">
+        {{#each enemies as |enemy|}}
+        <article class="looter-enemy-card">
+          <img src="{{enemy.img}}" alt="{{enemy.name}}">
+          <div>
+            <h4>{{enemy.displayName}}</h4>
+            <p>CR {{enemy.cr}} · XP {{enemy.xp}}{{#if enemy.isStacked}} each{{/if}}</p>
+            {{#if enemy.isStacked}}<p class="looter-muted">Defeated: {{enemy.count}} · Total XP {{enemy.totalXp}}</p>{{/if}}
+            <p>Types: {{#if enemy.treasureTypes.length}}{{#each enemy.treasureTypes}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}{{else}}None{{/if}}</p>
+            <p class="looter-muted">{{#if enemy.matched}}Matched in Looter table{{else}}Not found in Looter table{{/if}}</p>
+          </div>
+        </article>
+        {{/each}}
+      </div>
+    </div>
+
+    <div class="looter-panel">
+      <h3>Players</h3>
+      <div class="looter-player-list">
+        {{#each players as |player i|}}
+        <div class="looter-player-card" data-actor-id="{{player.actorId}}">
+          <input type="checkbox" name="players.{{i}}.enabled" {{#if player.enabled}}checked{{/if}}>
+          <img src="{{player.img}}" alt="{{player.name}}">
+          <div class="looter-player-content">
+            <strong>{{player.name}}</strong>
+            <p class="looter-muted">Included in currency and XP split</p>
+            <div class="looter-assigned-list">
+              {{#if player.assignedItems.length}}
+                {{#each player.assignedItems as |item|}}
+                <button type="button" class="looter-assigned-pill looter-unassign-pill" data-index="{{item.index}}" title="Remove and return to loot">
+                  <span>{{item.name}}</span>
+                  <i class="fas fa-xmark"></i>
+                </button>
+                {{/each}}
+              {{else}}
+                <span class="looter-muted">Drop loot here</span>
+              {{/if}}
+            </div>
+          </div>
+        </div>
+        {{/each}}
+      </div>
+    </div>
+
+    <div class="looter-panel">
+      <h3>Loot</h3>
+      <div class="looter-totals">
+        {{#if useXp}}
+        <label>XP <input type="number" name="xp" value="{{xp}}"></label>
+        {{/if}}
+        <div class="looter-currency-grid">
+          <label>PP <input type="number" name="currency.pp" value="{{currency.pp}}"></label>
+          <label>GP <input type="number" name="currency.gp" value="{{currency.gp}}"></label>
+          <label>EP <input type="number" name="currency.ep" value="{{currency.ep}}"></label>
+          <label>SP <input type="number" name="currency.sp" value="{{currency.sp}}"></label>
+          <label>CP <input type="number" name="currency.cp" value="{{currency.cp}}"></label>
+        </div>
+      </div>
+
+      <div class="looter-unassigned-dropzone">
+        Drag here to unassign loot
+      </div>
+
+      <div class="looter-loot-scroll">
+        <div class="looter-item-list">
+        {{#if items.length}}
+          {{#each items as |item|}}
+          <div class="looter-item-row" data-index="{{item.index}}" draggable="true">
+            <div class="looter-item-meta">
+              <img src="{{item.img}}" alt="{{item.name}}">
+              <div>
+                <strong>{{item.name}}</strong>
+                <p class="looter-muted">{{item.sourceType}} {{item.tier}}</p>
+              </div>
+            </div>
+          </div>
+          {{/each}}
+        {{else}}
+          <p class="looter-muted">No unassigned loot.</p>
+        {{/if}}
+        </div>
+      </div>
+    </div>
+  </section>
+</form>
