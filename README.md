@@ -48,10 +48,9 @@ It replaces manual loot tracking with a fast, visual workflow that lets GMs roll
 ---
 
 ### RollTable Picker
-- Click a **target reticle icon** to:
-  - Minimize the config UI
-  - Select a RollTable directly from the sidebar
-- No more manual typing
+- Drag a RollTable into the **Item Table** field
+- Works with **world RollTables** and **RollTable compendiums**
+- No manual typing or picker dialog
 
 ---
 
@@ -99,7 +98,7 @@ Open **Looter → Monster Registry**
 ### 2. Configure Treasure Profiles
 Open **Looter → Treasure Profiles**
 - Define currency formulas
-- Link RollTables using the picker
+- Drag world or compendium RollTables into the Item Table field
 - Set how many times tables roll
 
 ### 3. Run Combat

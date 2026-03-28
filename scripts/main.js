@@ -129,6 +129,17 @@ function defaultCurrencyBlock() {
   return { pp: "", gp: "", ep: "", sp: "", cp: "" };
 }
 
+function zeroCurrencyTotals() {
+  return { pp: 0, gp: 0, ep: 0, sp: 0, cp: 0 };
+}
+
+function addCurrencyTotals(target, source, factor = 1) {
+  for (const denom of ["pp", "gp", "ep", "sp", "cp"]) {
+    target[denom] = clampNumber(target[denom], 0) + (clampNumber(source?.[denom], 0) * factor);
+  }
+  return target;
+}
+
 function starterProfile(type, tier) {
   const currency = defaultCurrencyBlock();
   if (type === "Individual") {
@@ -186,6 +197,7 @@ function starterItemName(type, tier) {
 function mergeProfileWithStarter(row) {
   const normalized = normalizeProfile(row);
   const starter = starterProfile(normalized.type, normalized.tier);
+  const hasItemTable = Object.prototype.hasOwnProperty.call(row ?? {}, "itemTable");
   return {
     type: normalized.type,
     tier: normalized.tier,
@@ -197,7 +209,7 @@ function mergeProfileWithStarter(row) {
       cp: normalized.currency.cp || starter.currency.cp || ""
     },
     tableRolls: String(normalized.tableRolls || starter.tableRolls || "1").trim() || "1",
-    itemTable: normalized.itemTable || starter.itemTable || ""
+    itemTable: hasItemTable ? normalized.itemTable : (starter.itemTable || "")
   };
 }
 
@@ -285,25 +297,80 @@ function getTableResultLabel(result) {
   return String(source?.name || source?.description || result?.name || result?.description || "").trim();
 }
 
+function buildRollTableReference({ pack = "", id = "", documentName = "RollTable" } = {}) {
+  const packName = String(pack ?? "").trim();
+  const docId = String(id ?? "").trim();
+  if (!packName || !docId) return "";
+  return foundry.utils?.buildUuid?.({ pack: packName, documentName, id: docId })
+    || `Compendium.${packName}.${documentName}.${docId}`;
+}
+
+function parseCompendiumRollTableReference(reference) {
+  const ref = String(reference ?? "").trim();
+  if (!ref.startsWith("Compendium.")) return null;
+
+  const parts = ref.split(".");
+  if (parts.length < 4) return null;
+
+  const id = parts.at(-1) || "";
+  const maybeDocumentName = parts.at(-2) || "";
+  const hasDocumentName = maybeDocumentName === "RollTable";
+  const pack = parts.slice(1, hasDocumentName ? -2 : -1).join(".");
+
+  if (!pack || !id) return null;
+  return { pack, id };
+}
+
+function getCompendiumCollectionKey(pack) {
+  return String(pack?.collection || pack?.metadata?.id || "").trim();
+}
+
+function getCompendiumPackLabel(pack) {
+  return String(pack?.metadata?.label || pack?.title || getCompendiumCollectionKey(pack)).trim();
+}
+
+function getCompendiumIndexEntries(pack) {
+  const index = pack?.index;
+  if (!index) return [];
+  if (Array.isArray(index)) return index;
+  if (typeof index.values === "function") return Array.from(index.values());
+  if (Array.isArray(index.contents)) return index.contents;
+  return [];
+}
+
+function getCompendiumIndexEntry(pack, id) {
+  const docId = String(id ?? "").trim();
+  if (!pack || !docId) return null;
+  if (typeof pack.index?.get === "function") return pack.index.get(docId) ?? null;
+  return getCompendiumIndexEntries(pack).find(entry => String(entry?._id || entry?.id || "").trim() === docId) ?? null;
+}
+
 function getRollTableReference(table) {
   if (!table) return "";
-  return table.uuid || (table.pack ? `Compendium.${table.pack}.${table.id}` : `RollTable.${table.id}`);
+  return table.uuid || (table.pack ? buildRollTableReference({ pack: table.pack, id: table.id, documentName: table.documentName || "RollTable" }) : `RollTable.${table.id}`);
 }
 
 function findRollTableByReference(reference) {
   const ref = String(reference ?? "").trim();
   if (!ref) return null;
+  if (ref.includes(".") && typeof foundry.utils?.fromUuidSync === "function") {
+    try {
+      const resolved = foundry.utils.fromUuidSync(ref);
+      if (resolved?.documentName === "RollTable" || (parseCompendiumRollTableReference(ref) && resolved?.name)) return resolved;
+    } catch (_err) {}
+  }
   if (/^RollTable\./.test(ref)) {
     const id = ref.split(".")[1] || "";
     return game.tables.get(id) ?? null;
   }
-  if (/^Compendium\./.test(ref)) {
-    const parts = ref.split(".");
-    if (parts.length >= 4) {
-      const packName = `${parts[1]}.${parts[2]}`;
-      const pack = game.packs.get(packName);
-      if (pack?.documentName === "RollTable") return { pack, id: parts[3], uuid: ref, name: ref };
-    }
+  const compendiumRef = parseCompendiumRollTableReference(ref);
+  if (compendiumRef) {
+    const pack = game.packs.get(compendiumRef.pack);
+    if (pack?.documentName !== "RollTable") return null;
+    const entry = getCompendiumIndexEntry(pack, compendiumRef.id);
+    return entry
+      ? { ...entry, pack: compendiumRef.pack, uuid: buildRollTableReference({ pack: compendiumRef.pack, id: compendiumRef.id }) || ref }
+      : { pack: compendiumRef.pack, id: compendiumRef.id, uuid: ref, name: ref };
   }
   return game.tables.find(t => t.name === ref) ?? null;
 }
@@ -311,12 +378,22 @@ function findRollTableByReference(reference) {
 async function resolveRollTableByReference(reference) {
   const ref = String(reference ?? "").trim();
   if (!ref) return null;
-  if (/^Compendium\./.test(ref)) {
+  const compendiumRef = parseCompendiumRollTableReference(ref);
+  if (compendiumRef) {
+    const canonicalRef = buildRollTableReference({ pack: compendiumRef.pack, id: compendiumRef.id }) || ref;
     try {
-      const doc = await fromUuid(ref);
+      const doc = await fromUuid(canonicalRef);
       if (doc?.documentName === "RollTable") return doc;
     } catch (err) {
-      console.warn(`${LOOTER_ID} | Failed to resolve roll table by UUID`, ref, err);
+      console.warn(`${LOOTER_ID} | Failed to resolve roll table by UUID`, canonicalRef, err);
+    }
+
+    try {
+      const pack = game.packs.get(compendiumRef.pack);
+      const doc = await pack?.getDocument?.(compendiumRef.id);
+      if (doc?.documentName === "RollTable") return doc;
+    } catch (err) {
+      console.warn(`${LOOTER_ID} | Failed to resolve roll table from compendium`, compendiumRef, err);
     }
   }
   return findRollTableByReference(ref);
@@ -326,6 +403,14 @@ function getRollTableDisplayName(reference) {
   const ref = String(reference ?? "").trim();
   if (!ref) return "";
   const table = findRollTableByReference(ref);
+  const compendiumRef = parseCompendiumRollTableReference(ref);
+  if (compendiumRef) {
+    const pack = game.packs.get(compendiumRef.pack);
+    const packLabel = getCompendiumPackLabel(pack) || compendiumRef.pack;
+    const name = String(table?.name || getCompendiumIndexEntry(pack, compendiumRef.id)?.name || "").trim();
+    if (name && packLabel) return `${name} (${packLabel})`;
+    return name || packLabel || ref;
+  }
   return table?.name || ref;
 }
 
@@ -384,7 +469,16 @@ async function drawItemsFromTable(tableReference, sourceType, tier, drawCount = 
   const items = [];
   const ref = String(tableReference ?? "").trim();
   if (!ref) return items;
-  const table = await resolveRollTableByReference(ref);
+  const sourceTable = await resolveRollTableByReference(ref);
+  let table = sourceTable;
+  if (sourceTable?.pack) {
+    try {
+      table = await sourceTable.clone({}, { save: false, keepId: true, pack: null, parentCollection: null });
+    } catch (err) {
+      console.warn(`${LOOTER_ID} | Failed to clone compendium roll table for drawing`, ref, err);
+      table = sourceTable;
+    }
+  }
   if (!table) {
     console.warn(`${LOOTER_ID} | Missing roll table`, ref);
     return items;
@@ -464,13 +558,7 @@ function treasureTypesFromActor(actor) {
 
 async function resolveDroppedActor(event) {
   const dragEvent = event?.originalEvent ?? event;
-  let data = null;
-
-  try {
-    data = TextEditor.getDragEventData(dragEvent);
-  } catch (_err) {
-    data = null;
-  }
+  const data = getDragEventData(dragEvent);
 
   if (!data) return null;
 
@@ -485,6 +573,50 @@ async function resolveDroppedActor(event) {
     }
   } catch (err) {
     console.warn(`${LOOTER_ID} | Failed to resolve dropped actor`, err, data);
+  }
+
+  return null;
+}
+
+function getDragEventData(event) {
+  const textEditor = foundry.applications?.ux?.TextEditor?.implementation;
+  if (typeof textEditor?.getDragEventData !== "function") return null;
+  try {
+    return textEditor.getDragEventData(event);
+  } catch (_err) {
+    return null;
+  }
+}
+
+async function resolveDroppedRollTable(event) {
+  const dragEvent = event?.originalEvent ?? event;
+  const data = getDragEventData(dragEvent);
+
+  if (!data) return null;
+
+  try {
+    if (typeof data.uuid === "string" && data.uuid) {
+      const doc = await fromUuid(data.uuid);
+      if (doc?.documentName === "RollTable") {
+        const reference = getRollTableReference(doc);
+        return { table: doc, reference };
+      }
+    }
+
+    const isRollTable = data.type === "RollTable" || data.documentName === "RollTable";
+    if (!isRollTable) return null;
+
+    const id = String(data.id ?? data._id ?? data.documentId ?? data.entryId ?? "").trim();
+    if (!id) return null;
+
+    let pack = String(data.pack ?? data.packName ?? data.collection ?? "").trim();
+    if (pack.startsWith("Compendium.")) pack = pack.slice("Compendium.".length);
+
+    const reference = pack ? buildRollTableReference({ pack, id }) : `RollTable.${id}`;
+    const table = await resolveRollTableByReference(reference);
+    return { table, reference: table ? getRollTableReference(table) || reference : reference };
+  } catch (err) {
+    console.warn(`${LOOTER_ID} | Failed to resolve dropped roll table`, err, data);
   }
 
   return null;
@@ -522,7 +654,7 @@ async function buildEncounterSnapshot(combat) {
     enabled: true
   }));
 
-  const totalCurrency = { pp: 0, gp: 0, ep: 0, sp: 0, cp: 0 };
+  const totalCurrency = zeroCurrencyTotals();
   let totalXp = 0;
   const lootItems = [];
 
@@ -533,6 +665,9 @@ async function buildEncounterSnapshot(combat) {
     const matched = findMonsterEntryByName(actor?.name);
     const entry = matched ?? { name: actor?.name ?? combatant.name, cr: fallbackCr, xp: fallbackXp, treasureTypes: [] };
 
+    const rolled = await rollFromTreasurePlan(entry);
+    const rewardItems = rolled.items.map(item => clone(item));
+
     enemies.push({
       combatantId: combatant.id,
       actorId: actor?.id,
@@ -541,13 +676,16 @@ async function buildEncounterSnapshot(combat) {
       cr: clampNumber(entry.cr, fallbackCr),
       xp: clampNumber(entry.xp, fallbackXp),
       treasureTypes: Array.isArray(entry.treasureTypes) ? [...entry.treasureTypes] : [],
-      matched: Boolean(matched)
+      matched: Boolean(matched),
+      rewards: {
+        currency: clone(rolled.currency),
+        items: rewardItems
+      }
     });
 
     totalXp += clampNumber(entry.xp, fallbackXp);
-    const rolled = await rollFromTreasurePlan(entry);
-    for (const denom of ["pp", "gp", "ep", "sp", "cp"]) totalCurrency[denom] += clampNumber(rolled.currency[denom], 0);
-    lootItems.push(...rolled.items);
+    addCurrencyTotals(totalCurrency, rolled.currency);
+    lootItems.push(...rewardItems.map(item => clone(item)));
   }
 
   return {
@@ -625,39 +763,74 @@ function rewardsSummaryHTML(payload) {
   const playerNames = payload.players.filter(p => p.enabled).map(p => p.name).join(", ") || "No one";
   const loot = payload.items.map(i => `<li>${i.name}${i.assigneeName ? ` → ${i.assigneeName}` : ""}</li>`).join("");
   const currencyBits = ["pp", "gp", "ep", "sp", "cp"].map(d => `${payload.currency[d] ?? 0} ${d}`).join(", ");
+  const xpHtml = getUseXp() ? `<p><strong>XP:</strong> ${payload.xp}</p>` : "";
   return `
   <div class="looter-chat-summary">
     <h3>Looter Rewards</h3>
     <p><strong>Recipients:</strong> ${playerNames}</p>
-    <p><strong>XP:</strong> ${payload.xp}</p>
+    ${xpHtml}
     <p><strong>Currency:</strong> ${currencyBits}</p>
     <ul>${loot || "<li>No items</li>"}</ul>
+  </div>`;
+}
+
+async function rewardsSummaryChatHTML(payload) {
+  const playerNames = payload.players.filter(p => p.enabled).map(p => p.name).join(", ") || "No one";
+  const textEditor = foundry.applications?.ux?.TextEditor?.implementation;
+  const loot = await Promise.all(payload.items.map(async item => {
+    const safeName = foundry.utils.escapeHTML(String(item?.name ?? "").trim() || "Loot");
+    const safeAssignee = foundry.utils.escapeHTML(String(item?.assigneeName ?? "").trim());
+    const suffix = safeAssignee ? ` &rarr; ${safeAssignee}` : "";
+    const sourceUuid = String(item?.sourceUuid ?? "").trim();
+    if (!sourceUuid || typeof textEditor?.enrichHTML !== "function") return `<li>${safeName}${suffix}</li>`;
+
+    const enrichedLink = await textEditor.enrichHTML(`@UUID[${sourceUuid}]{${safeName}}`, {
+      documents: true,
+      links: true,
+      embeds: false,
+      rolls: false,
+      secrets: false
+    });
+    return `<li>${enrichedLink}${suffix}</li>`;
+  }));
+  const currencyBits = ["pp", "gp", "ep", "sp", "cp"].map(d => `${payload.currency[d] ?? 0} ${d}`).join(", ");
+  const xpHtml = getUseXp() ? `<p><strong>XP:</strong> ${payload.xp}</p>` : "";
+  return `
+  <div class="looter-chat-summary">
+    <h3>Looter Rewards</h3>
+    <p><strong>Recipients:</strong> ${foundry.utils.escapeHTML(playerNames)}</p>
+    ${xpHtml}
+    <p><strong>Currency:</strong> ${currencyBits}</p>
+    <ul>${loot.join("") || "<li>No items</li>"}</ul>
   </div>`;
 }
 
 function stackEnemiesForDisplay(enemies = []) {
   const groups = new Map();
 
-  for (const enemy of enemies) {
+  enemies.forEach((enemy, index) => {
     const key = [normalizeName(enemy.name), String(enemy.cr), String(enemy.xp), (enemy.treasureTypes || []).join("|")].join("::");
     const existing = groups.get(key);
     if (existing) {
       existing.count += 1;
       existing.totalXp += clampNumber(enemy.xp, 0);
-      continue;
+      existing.memberIndexes.push(index);
+      return;
     }
 
     groups.set(key, {
       ...enemy,
       count: 1,
-      totalXp: clampNumber(enemy.xp, 0)
+      totalXp: clampNumber(enemy.xp, 0),
+      memberIndexes: [index]
     });
-  }
+  });
 
   return Array.from(groups.values()).map(enemy => ({
     ...enemy,
     isStacked: enemy.count > 1,
-    displayName: enemy.count > 1 ? `${enemy.name} ×${enemy.count}` : enemy.name
+    displayName: enemy.count > 1 ? `${enemy.name} x${enemy.count}` : enemy.name,
+    memberIndexCsv: enemy.memberIndexes.join(",")
   }));
 }
 
@@ -964,13 +1137,6 @@ class LooterMonsterTableApp extends FormApplication {
 
 
 class LooterTreasureProfilesApp extends FormApplication {
-  constructor(options = {}) {
-    super(options);
-    this._tablePicker = null;
-    this._boundTablePickerClick = this._onTablePickerClick.bind(this);
-    this._boundTablePickerKeydown = this._onTablePickerKeydown.bind(this);
-  }
-
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
       id: "looter-treasure-profiles",
@@ -1043,90 +1209,71 @@ class LooterTreasureProfilesApp extends FormApplication {
       this.render(false);
     });
 
-    html.find(".looter-pick-table").on("click", async ev => {
-      ev.preventDefault();
-      const idx = Number(ev.currentTarget.dataset.index);
-      if (!Number.isFinite(idx)) return;
-      await this._startTablePicker(idx);
-    });
-
     html.find(".looter-clear-table").on("click", async ev => {
       ev.preventDefault();
       const idx = Number(ev.currentTarget.dataset.index);
       if (!Number.isFinite(idx)) return;
       await this._clearLinkedTable(idx);
     });
-  }
 
-  async _startTablePicker(index) {
-    const root = this.form ?? this.element?.[0];
-    if (!root) return;
-    await this._saveFromForm(root, { notify: false, rerender: false });
-
-    this._tablePicker = { index };
-    if (typeof ui.sidebar?.changeTab === "function") ui.sidebar.changeTab("tables", "primary");
-    else ui.sidebar?.activateTab?.("tables");
-    ui.tables?.render?.(true);
-    await this.minimize();
-    ui.notifications.info("Looter table picker active. Click a RollTable in the Roll Tables directory to link it, or press Escape to cancel.");
-    document.addEventListener("click", this._boundTablePickerClick, true);
-    document.addEventListener("keydown", this._boundTablePickerKeydown, true);
-  }
-
-  async _finishTablePicker() {
-    document.removeEventListener("click", this._boundTablePickerClick, true);
-    document.removeEventListener("keydown", this._boundTablePickerKeydown, true);
-    this._tablePicker = null;
-    try {
-      await this.maximize();
-    } catch (_err) {
-      this.render(false);
+    for (const zone of html[0].querySelectorAll(".looter-table-dropzone[data-index]")) {
+      zone.addEventListener("dragover", this._onTableLinkDragOver.bind(this));
+      zone.addEventListener("dragleave", this._onTableLinkDragLeave.bind(this));
+      zone.addEventListener("drop", this._onTableLinkDrop.bind(this));
     }
   }
 
-  async _cancelTablePicker(notify = true) {
-    if (!this._tablePicker) return;
-    await this._finishTablePicker();
-    if (notify) ui.notifications.info("Looter table picker cancelled.");
+  _setTableLinkDropState(target, active) {
+    const zone = target?.closest?.(".looter-table-dropzone") || target;
+    if (!zone) return;
+    zone.classList.toggle("is-drop-target", active);
   }
 
-  _extractRollTableIdFromElement(target) {
-    const item = target?.closest?.('.directory-item.document, .document.rolltable, li.document.rolltable, li[data-document-id], li[data-entry-id]');
-    if (!item) return null;
-    if (ui.tables?.element?.[0] && !ui.tables.element[0].contains(item)) return null;
-    return item.dataset.documentId || item.dataset.entryId || item.dataset.id || null;
-  }
-
-  async _onTablePickerClick(event) {
-    if (!this._tablePicker) return;
-    const docId = this._extractRollTableIdFromElement(event.target);
-    if (!docId) return;
-
-    const table = game.tables.get(docId);
-    if (!table) return;
-
+  _onTableLinkDragOver(event) {
     event.preventDefault();
-    event.stopPropagation();
+    this._setTableLinkDropState(event.currentTarget, true);
+    if ((event.originalEvent ?? event).dataTransfer) (event.originalEvent ?? event).dataTransfer.dropEffect = "copy";
+  }
 
-    const profiles = getTreasureProfiles().map(normalizeProfile);
-    const idx = this._tablePicker.index;
-    if (!profiles[idx]) {
-      await this._cancelTablePicker(false);
+  _onTableLinkDragLeave(event) {
+    this._setTableLinkDropState(event.currentTarget, false);
+  }
+
+  async _onTableLinkDrop(event) {
+    event.preventDefault();
+    this._setTableLinkDropState(event.currentTarget, false);
+
+    const zone = event.currentTarget?.closest?.(".looter-table-dropzone") || event.currentTarget;
+    const index = Number(zone?.dataset.index);
+    if (!Number.isFinite(index)) return;
+
+    const dropped = await resolveDroppedRollTable(event);
+    if (!dropped?.reference) {
+      ui.notifications.warn("Drop a RollTable from the Roll Tables directory or a RollTable compendium.");
       return;
     }
 
-    profiles[idx].itemTable = getRollTableReference(table);
-    await setTreasureProfiles(profiles);
-    await this._finishTablePicker();
-    ui.notifications.info(`Looter linked ${table.name}.`);
-    this.render(false);
+    await this._linkTableReference(index, dropped.reference);
   }
 
-  async _onTablePickerKeydown(event) {
-    if (!this._tablePicker || event.key !== "Escape") return;
-    event.preventDefault();
-    event.stopPropagation();
-    await this._cancelTablePicker();
+  async _linkTableReference(index, reference) {
+    const root = this.form ?? this.element?.[0];
+    if (!root) return;
+    await this._saveFromForm(root, { notify: false, rerender: false });
+    const profiles = getTreasureProfiles().map(normalizeProfile);
+    if (!profiles[index]) return;
+    profiles[index].itemTable = reference;
+    await setTreasureProfiles(profiles);
+    const displayName = getRollTableDisplayName(reference);
+    const row = root.querySelector(`tbody.looter-profiles tr[data-index="${index}"]`);
+    const hiddenInput = row?.querySelector(`[name="profiles.${index}.itemTable"]`);
+    const displayInput = row?.querySelector(".looter-table-display");
+    if (hiddenInput) hiddenInput.value = reference;
+    if (displayInput) {
+      displayInput.value = displayName;
+      displayInput.title = displayName;
+    }
+    ui.notifications.info(`Looter linked ${getRollTableDisplayName(reference)}.`);
   }
 
   async _clearLinkedTable(index) {
@@ -1145,7 +1292,10 @@ class LooterTreasureProfilesApp extends FormApplication {
     const hiddenInput = row?.querySelector(`[name="profiles.${index}.itemTable"]`);
     const displayInput = row?.querySelector(".looter-table-display");
     if (hiddenInput) hiddenInput.value = "";
-    if (displayInput) displayInput.value = "";
+    if (displayInput) {
+      displayInput.value = "";
+      displayInput.title = "";
+    }
 
     ui.notifications.info("Looter cleared the linked RollTable for that profile.");
   }
@@ -1179,7 +1329,6 @@ class LooterTreasureProfilesApp extends FormApplication {
   }
 
   async close(options) {
-    await this._cancelTablePicker(false);
     return super.close(options);
   }
 
@@ -1232,8 +1381,68 @@ class LooterEncounterApp extends FormApplication {
     };
   }
 
+  _captureScrollPositions(root = this.form ?? this.element?.[0]) {
+    return {
+      enemies: root?.querySelector(".looter-enemy-list")?.scrollTop ?? 0,
+      players: root?.querySelector(".looter-player-list")?.scrollTop ?? 0,
+      loot: root?.querySelector(".looter-loot-scroll")?.scrollTop ?? 0
+    };
+  }
+
+  async _renderPreservingScroll(scrollPositions = null) {
+    const positions = scrollPositions ?? this._captureScrollPositions();
+    this.render(false);
+    await new Promise(resolve => requestAnimationFrame(() => resolve()));
+    const root = this.form ?? this.element?.[0];
+    if (!root) return;
+    const enemyList = root.querySelector(".looter-enemy-list");
+    const playerList = root.querySelector(".looter-player-list");
+    const lootList = root.querySelector(".looter-loot-scroll");
+    if (enemyList) enemyList.scrollTop = clampNumber(positions?.enemies, 0);
+    if (playerList) playerList.scrollTop = clampNumber(positions?.players, 0);
+    if (lootList) lootList.scrollTop = clampNumber(positions?.loot, 0);
+  }
+
+  _ensureEncounterCardControls(root) {
+    if (!root) return;
+
+    const displayEnemies = stackEnemiesForDisplay(this.state.enemies);
+    root.querySelectorAll(".looter-enemy-card").forEach((card, index) => {
+      let button = card.querySelector(".looter-reroll-enemy");
+      if (!button) {
+        button = document.createElement("button");
+        button.type = "button";
+        button.className = "looter-card-reroll looter-reroll-enemy";
+        button.title = "Reroll this enemy's rewards";
+        button.setAttribute("aria-label", "Reroll this enemy's rewards");
+        button.innerHTML = `<i class="fas fa-rotate-right"></i>`;
+        card.append(button);
+      }
+      button.dataset.indexes = displayEnemies[index]?.memberIndexCsv || "";
+    });
+
+    const unassignedItems = this.state.items
+      .map((item, index) => ({ item, index }))
+      .filter(({ item }) => !item.assignee);
+
+    root.querySelectorAll(".looter-item-row").forEach((row, index) => {
+      let button = row.querySelector(".looter-reroll-item");
+      if (!button) {
+        button = document.createElement("button");
+        button.type = "button";
+        button.className = "looter-card-reroll looter-reroll-item";
+        button.title = "Reroll this loot item";
+        button.setAttribute("aria-label", "Reroll this loot item");
+        button.innerHTML = `<i class="fas fa-rotate-right"></i>`;
+        row.append(button);
+      }
+      button.dataset.index = String(unassignedItems[index]?.index ?? "");
+    });
+  }
+
   activateListeners(html) {
     super.activateListeners(html);
+    this._ensureEncounterCardControls(html[0]);
 
     html.find(".looter-reroll").on("click", async ev => {
       ev.preventDefault();
@@ -1254,10 +1463,24 @@ class LooterEncounterApp extends FormApplication {
       const payload = this._payloadForApply();
       payload.items = payload.items.map(item => ({ ...item, assigneeName: this.state.players.find(p => p.actorId === item.assignee)?.name || "" }));
       await ChatMessage.create({
-        content: rewardsSummaryHTML(payload),
+        content: await rewardsSummaryChatHTML(payload),
         speaker: ChatMessage.getSpeaker({ alias: "Looter" })
       });
       ui.notifications.info("Looter summary sent to chat.");
+    });
+
+    html.find(".looter-reroll-enemy").on("click", async ev => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      await this._rerollEnemyRewards(ev.currentTarget.dataset.indexes || "");
+    });
+
+    html.find(".looter-reroll-item").on("click", async ev => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const idx = Number(ev.currentTarget.dataset.index);
+      if (!Number.isFinite(idx)) return;
+      await this._rerollLootItem(idx);
     });
 
     html.find(".looter-unassign-pill").on("click", ev => {
@@ -1265,7 +1488,7 @@ class LooterEncounterApp extends FormApplication {
       const idx = Number(ev.currentTarget.dataset.index);
       if (!Number.isFinite(idx) || !this.state.items[idx]) return;
       this.state.items[idx].assignee = "";
-      this.render(false);
+      this._renderPreservingScroll();
     });
 
     html.find(".looter-item-row").attr("draggable", true)
@@ -1295,7 +1518,7 @@ class LooterEncounterApp extends FormApplication {
       const actorId = ev.currentTarget.dataset.actorId || "";
       if (!Number.isFinite(idx) || !this.state.items[idx]) return;
       this.state.items[idx].assignee = actorId;
-      this.render(false);
+      this._renderPreservingScroll();
     });
 
     html.find(".looter-unassigned-dropzone").on("dragover", ev => {
@@ -1309,8 +1532,12 @@ class LooterEncounterApp extends FormApplication {
       ev.currentTarget.classList.remove("is-drop-target");
       const idx = Number(ev.originalEvent.dataTransfer?.getData("text/plain"));
       if (!Number.isFinite(idx) || !this.state.items[idx]) return;
-      this.state.items[idx].assignee = "";
-      this.render(false);
+      const item = this.state.items[idx];
+      // Only remove items that are currently unassigned (i.e., visible in the loot column)
+      if (!item.assignee) {
+        this.state.items.splice(idx, 1);
+        this._renderPreservingScroll();
+      }
     });
   }
 
@@ -1325,6 +1552,114 @@ class LooterEncounterApp extends FormApplication {
       this.state.currency[denom] = clampNumber(root.querySelector(`[name="currency.${denom}"]`)?.value, 0);
     }
 
+  }
+
+  _parseEnemyIndexes(value) {
+    return String(value ?? "")
+      .split(",")
+      .map(v => Number(v.trim()))
+      .filter(Number.isFinite);
+  }
+
+  _rebuildCurrencyFromEnemyRewards() {
+    const totals = zeroCurrencyTotals();
+    for (const enemy of this.state.enemies) addCurrencyTotals(totals, enemy?.rewards?.currency);
+    this.state.currency = totals;
+  }
+
+  _replaceEnemyRewardItem(itemId, replacement) {
+    for (const enemy of this.state.enemies) {
+      const rewardItems = Array.isArray(enemy?.rewards?.items) ? enemy.rewards.items : [];
+      const itemIndex = rewardItems.findIndex(item => item.id === itemId);
+      if (itemIndex < 0) continue;
+      rewardItems[itemIndex] = clone(replacement);
+      return;
+    }
+  }
+
+  async _rerollEnemyRewards(indexesValue) {
+    const root = this.form ?? this.element?.[0];
+    if (!root) return;
+
+    await this._syncStateFromForm(root);
+    const scrollPositions = this._captureScrollPositions(root);
+    const indexes = [...new Set(this._parseEnemyIndexes(indexesValue))];
+    if (!indexes.length) return;
+
+    for (const index of indexes) {
+      const enemy = this.state.enemies[index];
+      if (!enemy) continue;
+
+      const oldRewardItems = Array.isArray(enemy.rewards?.items)
+        ? enemy.rewards.items.map(item => {
+          const liveItem = this.state.items.find(stateItem => stateItem.id === item.id);
+          return clone(liveItem || item);
+        })
+        : [];
+      const oldIds = new Set(oldRewardItems.map(item => item.id));
+      const oldIndexes = oldRewardItems
+        .map(item => this.state.items.findIndex(stateItem => stateItem.id === item.id))
+        .filter(i => i >= 0)
+        .sort((a, b) => a - b);
+      const insertAt = oldIndexes[0] ?? this.state.items.length;
+      const keptItems = this.state.items.filter(item => !oldIds.has(item.id));
+
+      const freshRewards = await rollFromTreasurePlan({
+        cr: enemy.cr,
+        treasureTypes: enemy.treasureTypes
+      });
+
+      const freshItems = freshRewards.items.map((item, itemIndex) => ({
+        ...item,
+        id: oldRewardItems[itemIndex]?.id || item.id,
+        assignee: oldRewardItems[itemIndex]?.assignee || ""
+      }));
+
+      keptItems.splice(insertAt, 0, ...freshItems);
+      this.state.items = keptItems;
+      enemy.rewards = {
+        currency: clone(freshRewards.currency),
+        items: freshItems.map(item => clone(item))
+      };
+    }
+
+    this._rebuildCurrencyFromEnemyRewards();
+    await this._renderPreservingScroll(scrollPositions);
+
+    const firstEnemy = this.state.enemies[indexes[0]];
+    const label = firstEnemy ? (indexes.length > 1 ? `${firstEnemy.name} x${indexes.length}` : firstEnemy.name) : "enemy rewards";
+    ui.notifications.info(`Looter rerolled ${label}.`);
+  }
+
+  async _rerollLootItem(index) {
+    const root = this.form ?? this.element?.[0];
+    const item = this.state.items[index];
+    if (!root || !item) return;
+
+    await this._syncStateFromForm(root);
+    const scrollPositions = this._captureScrollPositions(root);
+    const profile = findTreasureProfile(item.sourceType, item.tier) || findTreasureProfile("Any", item.tier);
+    if (!profile?.itemTable) {
+      ui.notifications.warn(`No RollTable is linked for ${item.sourceType} ${item.tier}.`);
+      return;
+    }
+
+    const replacementItems = await drawItemsFromTable(profile.itemTable, item.sourceType, item.tier, 1);
+    const replacementSource = replacementItems[0];
+    if (!replacementSource) {
+      ui.notifications.warn("That RollTable did not produce any rerollable loot.");
+      return;
+    }
+
+    const replacement = {
+      ...replacementSource,
+      id: item.id,
+      assignee: item.assignee || ""
+    };
+    this.state.items[index] = replacement;
+    this._replaceEnemyRewardItem(item.id, replacement);
+    await this._renderPreservingScroll(scrollPositions);
+    ui.notifications.info(`Looter rerolled ${item.name}.`);
   }
 
   async _reroll() {
@@ -1349,10 +1684,11 @@ class LooterEncounterApp extends FormApplication {
     };
 
     const fresh = await buildEncounterSnapshot(fakeCombat);
+    this.state.enemies = clone(fresh.enemies);
     this.state.xp = fresh.totals.xp;
     this.state.currency = clone(fresh.totals.currency);
     this.state.items = fresh.totals.items.map(i => ({ ...i, assignee: "" }));
-    this.render(false);
+    await this._renderPreservingScroll();
   }
 
   _payloadForApply() {
@@ -1513,17 +1849,28 @@ Hooks.once("ready", async () => {
 
 Hooks.on("renderActorDirectory", (_app, html) => {
   if (!game.user.isGM) return;
-  if (html.find(".looter-open-manager").length) return;
-  const button = $(`
-    <button type="button" class="looter-open-manager">
-      <i class="fas fa-sack-dollar"></i> Looter
-    </button>
-  `);
-  button.on("click", ev => {
+  const root = html?.querySelector ? html : html?.[0];
+  const header = root?.querySelector?.(".directory-header");
+  if (!header || header.querySelector(".looter-directory-shortcut")) return;
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "looter-directory-shortcut";
+  button.innerHTML = `<i class="fas fa-dragon"></i> Monster Registry`;
+  button.addEventListener("click", ev => {
     ev.preventDefault();
     openMonsterTableApp();
   });
-  html.find(".directory-header .header-actions").append(button);
+
+  const actions = header.querySelector(".header-actions") || header.querySelector(".action-buttons");
+  if (actions) {
+    actions.append(button);
+    return;
+  }
+
+  const search = header.querySelector(".header-search");
+  if (search) search.before(button);
+  else header.append(button);
 });
 
 Hooks.on("preDeleteCombat", async combat => {
@@ -1548,3 +1895,4 @@ Hooks.on("deleteCombat", combat => {
   if (!snapshot) return;
   queueEncounterAppOpen(combatId, snapshot, 0);
 });
+

@@ -43,7 +43,6 @@
 }
 
 .looter-toolbar-actions button,
-.looter-open-manager,
 .looter-save,
 .looter-add-row,
 .looter-seed-tables,
@@ -64,6 +63,13 @@
   background: var(--looter-accent);
   border-color: var(--looter-accent);
   color: white;
+}
+
+.directory-header .header-actions > .looter-directory-shortcut,
+.directory-header .action-buttons > .looter-directory-shortcut {
+  width: 100%;
+  flex: 1 0 100%;
+  grid-column: 1 / -1;
 }
 
 .looter-grid-3 {
@@ -112,6 +118,7 @@
 .looter-enemy-card,
 .looter-player-card,
 .looter-item-row {
+  position: relative;
   display: flex;
   gap: 10px;
   align-items: center;
@@ -147,6 +154,41 @@
   display: flex;
   gap: 10px;
   align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-right: 28px;
+}
+
+.looter-card-content {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-right: 28px;
+}
+
+.looter-card-reroll {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  width: 1.75rem;
+  height: 1.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.42);
+  color: var(--color-light-1, #f8fafc);
+  cursor: pointer;
+  line-height: 1;
+  opacity: 0.9;
+}
+
+.looter-card-reroll:hover,
+.looter-card-reroll:focus {
+  border-color: var(--looter-accent-soft);
+  background: rgba(255,255,255,0.08);
+  opacity: 1;
 }
 
 .looter-currency-grid {
@@ -472,6 +514,15 @@
   backdrop-filter: blur(8px);
 }
 
+/* freeze header of monster table so it doesn't scroll with the entries*/
+.looter-manager-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(8px);
+}
+
 .looter-delete-profile-white,
 .looter-delete-profile-white i {
   color: #fff;
@@ -485,24 +536,25 @@
 }
 
 
-.looter-table-picker-field {
+.looter-table-dropzone {
   display: flex;
   align-items: center;
   gap: 0.35rem;
+  padding: 0.2rem;
+  margin: -0.2rem;
+  border: 1px dashed transparent;
+  border-radius: 10px;
+  transition: border-color 140ms ease, background 140ms ease;
 }
 
-.looter-table-picker-field .looter-table-display {
+.looter-table-dropzone .looter-table-display {
   flex: 1 1 auto;
+  cursor: copy;
 }
 
-.looter-pick-table {
-  flex: 0 0 auto;
-  width: 2rem;
-  height: 2rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
+.looter-table-dropzone.is-drop-target {
+  border-color: var(--looter-accent-soft);
+  background: rgba(255,255,255,0.06);
 }
 
 
@@ -533,26 +585,6 @@ button.looter-add-profile * {
   border-color: rgba(255,255,255,0.3);
   background: rgba(255,255,255,0.08);
 }
-
-.looter-pick-table,
-.looter-pick-table i {
-  color: #ffffff !important;
-}
-
-.looter-pick-table {
-  padding: 0 !important;
-  line-height: 1;
-}
-
-.looter-pick-table i {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1rem;
-  height: 1rem;
-  line-height: 1;
-}
-
 
 .looter-clear-table,
 .looter-clear-table i {

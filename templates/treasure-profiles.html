@@ -54,11 +54,10 @@
             <td><input type="text" name="profiles.{{i}}.currency.sp" value="{{profile.currency.sp}}"></td>
             <td><input type="text" name="profiles.{{i}}.currency.cp" value="{{profile.currency.cp}}"></td>
             <td>
-              <div class="looter-table-picker-field">
+              <div class="looter-table-dropzone" data-index="{{i}}">
                 <input type="hidden" name="profiles.{{i}}.itemTable" value="{{profile.itemTable}}">
-                <input type="text" class="looter-table-display" value="{{profile.itemTableDisplay}}" placeholder="No RollTable selected" readonly>
+                <input type="text" class="looter-table-display" value="{{profile.itemTableDisplay}}" placeholder="Drop RollTable here" title="{{profile.itemTableDisplay}}" readonly>
                 <button type="button" class="looter-clear-table" data-index="{{i}}" aria-label="Clear RollTable"><i class="fas fa-times"></i></button>
-                <button type="button" class="looter-pick-table" data-index="{{i}}" aria-label="Pick RollTable"><i class="fas fa-crosshairs"></i></button>
               </div>
             </td>
             <td><input type="text" name="profiles.{{i}}.tableRolls" value="{{profile.tableRolls}}" placeholder="1"></td>
@@ -74,7 +73,7 @@
     <div class="looter-help-card">
       <h3>Profile Example</h3>
       <p><strong>Individual 5-10</strong> can add currency like <code>6d6*10 gp</code> and <code>2d6*10 sp</code>.</p>
-      <p>The linked RollTable can provide items from the Items Directory or Compendiums.</p>
+      <p>Drag a RollTable into the Item Table field from the Roll Tables directory or a compendium.</p>
     </div>
     <div class="looter-help-card">
       <h3>Treasure Types</h3>
