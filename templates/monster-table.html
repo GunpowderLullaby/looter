@@ -1,12 +1,12 @@
-<form class="looter-shell looter-manager-shell">
+<div class="looter-shell looter-manager-shell">
   <header class="looter-toolbar">
     <div>
       <h2>Monster Registry</h2>
       <p>Manage the monster lookup table that Looter uses after combat.</p>
     </div>
     <div class="looter-toolbar-actions">
-      <button type="button" class="looter-open-profiles"><i class="fas fa-coins"></i> Treasure Profiles</button>
-      <button type="button" class="looter-save primary"><i class="fas fa-save"></i> Save</button>
+      <button type="button" class="looter-open-profiles" data-action="openProfiles"><i class="fas fa-coins"></i> Treasure Profiles</button>
+      <button type="button" class="looter-save primary" data-action="saveRows"><i class="fas fa-save"></i> Save</button>
     </div>
   </header>
 
@@ -16,7 +16,7 @@
         <h3>Monster Table</h3>
         <p class="looter-muted">Looter searches defeated enemy names against this table.</p>
       </div>
-      <button type="button" class="looter-add-row"><i class="fas fa-plus"></i> Add Monster</button>
+      <button type="button" class="looter-add-row" data-action="addRow"><i class="fas fa-plus"></i> Add Monster</button>
     </div>
 
     <div class="looter-import-dropzone" data-import-dropzone>
@@ -29,10 +29,10 @@
         <thead>
           <tr>
             <th>
-              <button type="button" class="looter-sort-monsters" data-field="name">Name {{monsterSort.nameLabel}}</button>
+              <button type="button" class="looter-sort-monsters" data-action="sortRows" data-field="name">Name {{monsterSort.nameLabel}}</button>
             </th>
             <th>
-              <button type="button" class="looter-sort-monsters" data-field="cr">CR {{monsterSort.crLabel}}</button>
+              <button type="button" class="looter-sort-monsters" data-action="sortRows" data-field="cr">CR {{monsterSort.crLabel}}</button>
             </th>
             <th>XP</th>
             <th>Treasure Types</th>
@@ -47,7 +47,7 @@
             <td><input type="number" step="1" name="rows.{{i}}.xp" value="{{row.xp}}"></td>
             <td>
               <input type="hidden" name="rows.{{i}}.treasureTypes" value="{{row.treasureTypesValue}}">
-              <button type="button" class="looter-type-selector" data-index="{{i}}" aria-haspopup="dialog" aria-expanded="false">
+              <button type="button" class="looter-type-selector" data-action="toggleTreasureTypes" data-index="{{i}}" aria-haspopup="dialog" aria-expanded="false">
                 <span class="looter-type-selector-chips">
                   {{#if row.treasureTypes.length}}
                     {{#each row.treasureTypes as |type|}}<span class="looter-chip">{{type}}</span>{{/each}}
@@ -58,7 +58,7 @@
                 <i class="fas fa-chevron-down"></i>
               </button>
             </td>
-            <td><button type="button" class="looter-delete-row" data-index="{{i}}"><i class="fas fa-trash"></i></button></td>
+            <td><button type="button" class="looter-delete-row" data-action="deleteRow" data-index="{{i}}"><i class="fas fa-trash"></i></button></td>
           </tr>
           {{/each}}
         </tbody>
@@ -78,4 +78,4 @@
       <p>The "Treasure Types" drop down menu is auto-populated from the "Treasure Profiles Table" in the Treasure Profiles menu.</p>
     </div>
   </section>
-</form>
+</div>

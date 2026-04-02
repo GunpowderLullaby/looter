@@ -1,14 +1,14 @@
-<form class="looter-shell looter-manager-shell looter-profiles-shell">
+<div class="looter-shell looter-manager-shell looter-profiles-shell">
   <header class="looter-toolbar">
     <div>
       <h2>Treasure Profiles</h2>
       <p>Manage currency formulas and linked item tables for each treasure type and CR tier.</p>
     </div>
     <div class="looter-toolbar-actions">
-      <button type="button" class="looter-open-monsters"><i class="fas fa-dragon"></i> Monster Registry</button>
-      <button type="button" class="looter-seed-profiles"><i class="fas fa-coins"></i> Seed Profiles</button>
-      <button type="button" class="looter-seed-tables"><i class="fas fa-dice"></i> Seed Item Tables</button>
-      <button type="button" class="looter-save primary"><i class="fas fa-save"></i> Save</button>
+      <button type="button" class="looter-open-monsters" data-action="openMonsters"><i class="fas fa-dragon"></i> Monster Registry</button>
+      <button type="button" class="looter-seed-profiles" data-action="seedProfiles"><i class="fas fa-coins"></i> Seed Profiles</button>
+      <button type="button" class="looter-seed-tables" data-action="seedTables"><i class="fas fa-dice"></i> Seed Item Tables</button>
+      <button type="button" class="looter-save primary" data-action="saveProfiles"><i class="fas fa-save"></i> Save</button>
     </div>
   </header>
 
@@ -18,7 +18,7 @@
         <h3>Treasure Profiles Table</h3>
         <p class="looter-muted">Currency formulas live here. Item results come from the linked RollTable.</p>
       </div>
-      <button type="button" class="looter-add-profile"><i class="fas fa-plus"></i> Add Profile</button>
+      <button type="button" class="looter-add-profile" data-action="addProfile"><i class="fas fa-plus"></i> Add Profile</button>
     </div>
 
     <div class="looter-manager-table-wrap looter-profile-scroll-wrap">
@@ -54,14 +54,16 @@
             <td><input type="text" name="profiles.{{i}}.currency.sp" value="{{profile.currency.sp}}"></td>
             <td><input type="text" name="profiles.{{i}}.currency.cp" value="{{profile.currency.cp}}"></td>
             <td>
-              <div class="looter-table-dropzone" data-index="{{i}}">
+              <div class="looter-table-dropzone" data-index="{{i}}" title="{{profile.itemTableDisplay}}">
                 <input type="hidden" name="profiles.{{i}}.itemTable" value="{{profile.itemTable}}">
-                <input type="text" class="looter-table-display" value="{{profile.itemTableDisplay}}" placeholder="Drop RollTable here" title="{{profile.itemTableDisplay}}" readonly>
-                <button type="button" class="looter-clear-table" data-index="{{i}}" aria-label="Clear RollTable"><i class="fas fa-times"></i></button>
+                <div class="looter-table-display{{#unless profile.itemTableDisplay}} is-placeholder{{/unless}}">
+                  {{#if profile.itemTableDisplay}}{{profile.itemTableDisplay}}{{else}}Drop RollTable here{{/if}}
+                </div>
+                <button type="button" class="looter-clear-table" data-action="clearTable" data-index="{{i}}" aria-label="Clear RollTable"><i class="fas fa-times"></i></button>
               </div>
             </td>
             <td><input type="text" name="profiles.{{i}}.tableRolls" value="{{profile.tableRolls}}" placeholder="1"></td>
-            <td><button type="button" class="looter-delete-profile looter-delete-profile-white" data-index="{{i}}" aria-label="Delete profile"><i class="fas fa-trash"></i></button></td>
+            <td><button type="button" class="looter-delete-profile looter-delete-profile-white" data-action="deleteProfile" data-index="{{i}}" aria-label="Delete profile"><i class="fas fa-trash"></i></button></td>
           </tr>
           {{/each}}
         </tbody>
@@ -81,4 +83,4 @@
       <p>Profile types are what appear in the Monster Registry treasure-type selector. You can add as many as you like!</p>
     </div>
   </section>
-</form>
+</div>

@@ -73,8 +73,8 @@ It replaces manual loot tracking with a fast, visual workflow that lets GMs roll
 
 ## Requirements
 
-- **Foundry VTT**: v13.351  
-- **System**: D&D 5e v5.2.5  
+- **Foundry VTT**: v14
+- **System**: D&D 5e v5.3.0
 
 ---
 
@@ -82,9 +82,10 @@ It replaces manual loot tracking with a fast, visual workflow that lets GMs roll
 
 ### Manual Install
 1. Download the latest release `.zip`
-2. Extract into: FoundryVTT/Data/modules/looter
-3. Restart Foundry
-4. Enable **Looter** in your world
+2. Extract into: `FoundryVTT/Data/modules/looter`
+3. Make sure the module folder name is exactly `looter`
+4. Restart Foundry
+5. Enable **Looter** in your world
 
 ---
 

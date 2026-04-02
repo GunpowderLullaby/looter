@@ -2,15 +2,15 @@
   "id": "looter",
   "title": "Looter",
   "description": "Post-combat rewards distribution module for the D&D 5e (2024) system of Foundry VTT.",
-  "version": "0.3.17",
+  "version": "0.4.1",
   "authors": [
     {
       "name": "GunpowderLullaby"
     }
   ],
   "compatibility": {
-    "minimum": "13",
-    "verified": "13.351"
+    "minimum": "14",
+    "verified": "14.359"
   },
   "relationships": {
     "systems": [
@@ -18,8 +18,8 @@
         "id": "dnd5e",
         "type": "system",
         "compatibility": {
-          "minimum": "5.2.5",
-          "verified": "5.2.5"
+          "minimum": "5.3.0",
+          "verified": "5.3.0"
         }
       }
     ]
@@ -39,6 +39,6 @@
   ],
   "url": "https://github.com/GunpowderLullaby/Looter",
   "manifest": "https://raw.githubusercontent.com/GunpowderLullaby/Looter/main/module.json",
-  "download": "https://github.com/GunpowderLullaby/Looter/releases/download/v0.3.17/looter.zip"
+  "download": ""
 }
 
