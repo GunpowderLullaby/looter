@@ -37,8 +37,8 @@
       "path": "lang/en.json"
     }
   ],
-  "url": "https://github.com/GunpowderLullaby/Looter",
-  "manifest": "https://raw.githubusercontent.com/GunpowderLullaby/Looter/main/module.json",
-  "download": ""
+  "url": "https://github.com/GunpowderLullaby/looter",
+  "manifest": "https://raw.githubusercontent.com/GunpowderLullaby/looter/main/module.json",
+  "download": "https://github.com/GunpowderLullaby/looter/releases/download/v0.4.1/looter.zip"
 }
 
